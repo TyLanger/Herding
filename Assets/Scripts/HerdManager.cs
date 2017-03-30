@@ -24,6 +24,13 @@ public class HerdManager : MonoBehaviour {
 		currentHerdSize++;
 	}
 
+	public void threatenHerd(Vector3 threatPosition, float threatStrength, float threatDuration, float threatMaxRange)
+	{
+		for (int i = 0; i < currentHerdSize; i++) {
+			herd [i].threaten (threatPosition, threatStrength, threatDuration, threatMaxRange);
+		}
+	}
+
 	public Vector3 computeAlignment(HerdMovement agent)
 	{
 		int neighbourCount = 0;
