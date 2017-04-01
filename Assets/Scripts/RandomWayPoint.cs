@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class RandomWayPoint : MonoBehaviour {
 
+	// this is mostly just for testing to see if the herding works
 
 	void OnTriggerEnter(Collider col)
 	{

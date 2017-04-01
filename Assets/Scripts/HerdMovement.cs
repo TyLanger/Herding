@@ -7,6 +7,7 @@ public class HerdMovement : MonoBehaviour {
 	public struct Threat {
 		public Vector3 position;
 		public float timeLeft;
+		public float originalTime;
 		public float strength;
 		public float maxRange;
 
@@ -14,6 +15,7 @@ public class HerdMovement : MonoBehaviour {
 		{
 			position = _position;
 			timeLeft = _timeLeft;
+			originalTime = _timeLeft;
 			strength = _strength;
 			maxRange = _maxRange;
 		}
@@ -24,6 +26,7 @@ public class HerdMovement : MonoBehaviour {
 
 	public Transform target;
 	public float targetWeight;
+	public float targetRange;
 
 	public Transform danger;
 	public float dangerWeight;
@@ -49,6 +52,8 @@ public class HerdMovement : MonoBehaviour {
 	public float separationWeight;
 	[SerializeField]
 	Vector3 threat = Vector3.zero;
+	[SerializeField]
+	Vector3 targetDir = Vector3.zero;
 
 	/*
 	Vector3 lastAlignment;
@@ -117,6 +122,10 @@ public class HerdMovement : MonoBehaviour {
 		Gizmos.DrawRay (transform.position, cohesion*10);
 		Gizmos.color = Color.blue;
 		Gizmos.DrawRay (transform.position, separation*10);
+		Gizmos.color = Color.white;
+		Gizmos.DrawRay (transform.position, targetDir * 10);
+		//Gizmos.color = Color.gray;
+		//Gizmos.DrawRay (transform.position, moveDirection * 10);
 	}
 
 	void FixedUpdate () {
@@ -140,17 +149,18 @@ public class HerdMovement : MonoBehaviour {
 		lastSeparation = separation;
 		lastCohesion = cohesion;
 		*/
-
-
-
 		moveDirection = alignment  + cohesion  + separation ;
+
 		// move towards a target position
 		// the closer you are, the harder the pull in that direction
-		// for now, 100 is just an arbitrary number. This should be the max range you can see the target from. Like cohesionDistance, etc. in HerdManager
-		// if the magic number is bigger than the actual distance, they may not travel towards the target.
 		// max so that the herd doesn't move away from the target when further away than max range
 		// 0.5f is so that the herd doesn't get totally lost. They will alway pull a little bit towards the target
-		moveDirection += (target.position-transform.position).normalized * targetWeight * Mathf.Max(0.5f, (120f - Vector3.Distance(target.position, transform.position))) / 40f;
+		targetDir = (target.position-transform.position).normalized * targetWeight * Mathf.Max(0.5f, (targetRange - Vector3.Distance(target.position, transform.position)))/targetRange;
+		// could be
+		// max force of 3 (could be a variable)
+		// instead of using target weight
+		// targetDir = (target.position-transform.position).normalized * targetWeight * Mathf.Max(3f, Mathf.Max(0.5f, (targetRange - Vector3.Distance(target.position, transform.position))));
+		moveDirection += targetDir;
 
 		// move away from the danger
 		// closer you are, stronger push away is
@@ -162,7 +172,8 @@ public class HerdMovement : MonoBehaviour {
 		// this is for the threats that the player makes
 		if (numThreats > 0) {
 			for (int i = 0; i < numThreats; i++) {
-				moveDirection += (transform.position - allThreats [i].position).normalized * allThreats [i].strength * (Mathf.Max(0.0f, allThreats[i].maxRange - Vector3.Distance(transform.position, allThreats[i].position)));
+				// (allThreats[i].timeLeft / allThreats[i].originalTime) makes the threat fade over time.
+				moveDirection += (transform.position - allThreats [i].position).normalized * allThreats [i].strength * (allThreats[i].timeLeft / allThreats[i].originalTime) * (Mathf.Max(0.0f, allThreats[i].maxRange - Vector3.Distance(transform.position, allThreats[i].position)));
 				allThreats [i].timeLeft -= Time.deltaTime;
 
 				// this maybe could be its own function
@@ -180,15 +191,11 @@ public class HerdMovement : MonoBehaviour {
 		}
 
 
-		// normalized or normalize?
-		// normalize sets it to magnitude 1
-		// normalized leaves it as is, but uses the mag 1 version
-		// Normalize so you don't move really fast sometimes and really slow others
 
-		// gets messed up when the objects collide with one another and change their rotation
-		//transform.Translate (moveDirection.normalized * moveSpeed);
 
 		// doesn't get as messsed up by collisions
+		// this function doesn't worry about if moveDirection is magnitude 1 or magnitude 50, it still moves the same speed
+		// if moveDirection magnitude is < 1, then it will move slowly. This happens when too far away from neighbours and its target.
 		transform.position = Vector3.MoveTowards (transform.position, transform.position + moveDirection, moveSpeed);
 	}
 }
