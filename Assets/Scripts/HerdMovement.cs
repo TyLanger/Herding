@@ -6,6 +6,8 @@ public class HerdMovement : MonoBehaviour {
 
 	public struct Threat {
 		public Vector3 position;
+		public Transform threatTransform;
+		public bool movingThreat;
 		public float timeLeft;
 		public float originalTime;
 		public float strength;
@@ -13,11 +15,30 @@ public class HerdMovement : MonoBehaviour {
 
 		public Threat(Vector3 _position, float _strength, float _timeLeft, float _maxRange)
 		{
+			// this is called for static threats
 			position = _position;
 			timeLeft = _timeLeft;
 			originalTime = _timeLeft;
 			strength = _strength;
 			maxRange = _maxRange;
+
+			movingThreat = false;
+			// this doesn't get used for a static threat
+			threatTransform = null;
+		}
+
+		public Threat(Transform _transform, float _strength, float _timeLeft, float _maxRange)
+		{
+			// this is called for moving threats
+			threatTransform = _transform;
+			timeLeft = _timeLeft;
+			originalTime = _timeLeft;
+			strength = _strength;
+			maxRange = _maxRange;
+
+			movingThreat = true;
+			// this doesn't get used for a moving threat
+			position = Vector3.zero;
 		}
 	}
 
@@ -93,11 +114,11 @@ public class HerdMovement : MonoBehaviour {
 		moveSpeed = Random.Range (0.2f, 0.4f);
 		dangerWeight = Random.Range (0.85f, 1.1f);
 	}
-
+		
 	public void threaten(Vector3 threatPos, float threatStrength, float threatDuration, float threatMaxRange, bool fading)
 	{
 		// add new threat to list of threats
-		if (numThreats > maxThreats) {
+		if (numThreats >= maxThreats) {
 			return;
 			// no new threats can be handled
 		}
@@ -105,10 +126,37 @@ public class HerdMovement : MonoBehaviour {
 		numThreats++;
 	}
 
+	/// <summary>
+	/// For static threats.
+	/// Such as a campfire.
+	/// </summary>
+	/// <param name="threatPos">Threat position.</param>
+	/// <param name="threatStrength">Threat strength.</param>
+	/// <param name="threatDuration">Threat duration.</param>
+	/// <param name="threatMaxRange">Threat max range.</param>
 	public void threaten(Vector3 threatPos, float threatStrength, float threatDuration, float threatMaxRange)
 	{
 		// default is fading threat
 		threaten (threatPos, threatStrength, threatDuration, threatMaxRange, true);
+	}
+
+	/// <summary>
+	/// For threats that move. 
+	/// Such as if a shepherd yells, the sheep will be threatened by the shepherd, not the position they were in when they yelled.
+	/// </summary>
+	/// <param name="threatTrans">Threat trans.</param>
+	/// <param name="threatStrength">Threat strength.</param>
+	/// <param name="threatDuration">Threat duration.</param>
+	/// <param name="threatMaxRange">Threat max range.</param>
+	public void moveThreaten(Transform threatTrans, float threatStrength, float threatDuration, float threatMaxRange)
+	{
+		// add new threat to list of threats
+		if (numThreats > maxThreats) {
+			return;
+			// no new threats can be handled
+		}
+		allThreats [numThreats] = new Threat (threatTrans, threatStrength, threatDuration, threatMaxRange);
+		numThreats++;
 	}
 
 	void OnDrawGizmosSelected()
@@ -172,10 +220,17 @@ public class HerdMovement : MonoBehaviour {
 		// this is for the threats that the player makes
 		if (numThreats > 0) {
 			for (int i = 0; i < numThreats; i++) {
-				// (allThreats[i].timeLeft / allThreats[i].originalTime) makes the threat fade over time.
-				moveDirection += (transform.position - allThreats [i].position).normalized * allThreats [i].strength * (allThreats[i].timeLeft / allThreats[i].originalTime) * (Mathf.Max(0.0f, allThreats[i].maxRange - Vector3.Distance(transform.position, allThreats[i].position)));
-				allThreats [i].timeLeft -= Time.deltaTime;
+				Vector3 threatPosition;
+				if (allThreats [i].movingThreat) {
+					threatPosition = allThreats [i].threatTransform.position;
+				} else {
+					threatPosition = allThreats [i].position;
+				}
 
+				// (allThreats[i].timeLeft / allThreats[i].originalTime) makes the threat fade over time.
+				moveDirection += (transform.position - threatPosition).normalized * allThreats [i].strength * (allThreats [i].timeLeft / allThreats [i].originalTime) * (Mathf.Max (0.0f, allThreats [i].maxRange - Vector3.Distance (transform.position, threatPosition)));
+
+				allThreats [i].timeLeft -= Time.deltaTime;
 				// this maybe could be its own function
 				if (allThreats [i].timeLeft < 0f) {
 					// threat over; remove from array
