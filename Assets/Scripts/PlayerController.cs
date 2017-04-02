@@ -32,7 +32,8 @@ public class PlayerController : MonoBehaviour {
 			// this might be used to control the sheepdog later
 			// right now, whistle to get herd to follow you
 			// pass in the transform to get the threat to follow you
-			herdManager.movingThreat(transform, -4f, 4f, 35f);
+			// if strength is larger than separation weight on the herd, they will run into you and push you around
+			herdManager.movingThreat(transform, -0.15f, 4f, 35f);
 		}
 	}
 }

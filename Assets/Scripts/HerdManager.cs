@@ -14,6 +14,8 @@ public class HerdManager : MonoBehaviour {
 	public float minCohesionDistance = 50f;
 	public float separationDistance = 50f;
 
+	public Transform player;
+
 	void Awake() {
 		herd = new HerdMovement[maxHerdSize];
 	}
@@ -92,6 +94,11 @@ public class HerdManager : MonoBehaviour {
 			}
 		}
 
+		// also try to stay away from the player
+		if (Vector3.Distance (agent.transform.position, player.position) < separationDistance) {
+			separationVector += (separationDistance - Vector3.Distance (agent.transform.position, player.position)) * (player.position - agent.transform.position).normalized;
+			neighbourCount++;
+		}
 
 		// if no neighbours, just return 0 vector
 		if (neighbourCount == 0) {
